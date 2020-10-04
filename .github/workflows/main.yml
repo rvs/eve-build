@@ -67,6 +67,23 @@ jobs:
         with:
           name: rootfs
           path: ${{ github.workspace }}/dist/*/installer/rootfs-*.squash
+      - name: Run Eden
+        run: |
+          sudo apt update
+          sudo apt install -y qemu-utils
+          make HV=kvm eve
+          evebuildname=$(find ./dist/amd64 | grep kvm-amd64 | grep -o '0.*-kvm-amd64')
+          eve_tag=${evebuildname%-kvm-amd64}
+          rm -rf ./eden
+          git clone https://github.com/lf-edge/eden.git
+          cd ./eden
+          make clean
+          make build
+          ./eden config add default
+          ./eden config set default --key eve.tag --value=$eve_tag
+          ./eden config set default --key=eve.accel --value=false
+          make build-tests
+          ./eden test ./tests/workflow
 
 # If all else fails, you may find solace here
 #  https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions
